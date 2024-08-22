@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  litespeed:
+    build:
+      context: .
+    container_name: ${domain}
+    volumes:
+      - /php-sites/${domain}/root:/var/www/vhosts/localhost/html
+      - /php-sites/${domain}/logs:/usr/local/lsws/logs
+    networks:
+      - local
+      - www
+
+  mariadb:
+    image: mariadb:latest
+    container_name: ${domain}-db
+    env_file:
+      - /php-sites/${domain}/.env
+    volumes:
+      - /php-sites/${domain}/mariadb:/var/lib/mysql
+    networks:
+      - local
+      - database-monitor
+
+networks:
+  local:
+    name: ${domain}
+  www:
+    name: www
+    external: true
+  database-monitor:
+    name: database-monitor
+    external: true

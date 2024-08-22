@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    networks:
+      - database-monitor
+      - www
+networks:
+  www:
+    name: www
+    external: true
+  database-monitor:
+    name: database-monitor
