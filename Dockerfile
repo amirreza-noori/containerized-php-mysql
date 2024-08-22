@@ -26,8 +26,7 @@ USER root
 
 # Set permissions for the web root directory
 RUN mkdir -p html && \    
-    chown -R root:root /var/www/vhosts/localhost/html
-
+    chown -R nobody:nogroup /var/www/vhosts/localhost/html
 
 # Expose ports
 EXPOSE 80 443 7080
