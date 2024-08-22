@@ -4,6 +4,8 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
     networks:
       - database-monitor
       - www
