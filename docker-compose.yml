@@ -8,6 +8,7 @@ services:
     volumes:
       - /php-sites/${domain}/root:/var/www/vhosts/localhost/html
       - /php-sites/${domain}/logs:/usr/local/lsws/logs
+      - /php-sites/${domain}/configs:/configs
     networks:
       - local
       - www

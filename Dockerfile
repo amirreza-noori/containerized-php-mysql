@@ -10,7 +10,7 @@ RUN apt-get update && \
 
 
 # Download and install ionCube Loader
-RUN wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.zip
+RUN wget https://downloads4.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.zip
 RUN unzip ioncube_loaders_lin_x86-64.zip && \
     mkdir -p /usr/local/lsws/lsphp74/etc/php/7.4/conf.d && \
     cp ioncube/ioncube_loader_lin_7.4.so /usr/local/lsws/lsphp74/lib/php/ && \
@@ -25,11 +25,16 @@ WORKDIR /var/www/vhosts/localhost/
 USER root
 
 # Set permissions for the web root directory
-RUN mkdir -p html && \    
-    chown -R nobody:nogroup /var/www/vhosts/localhost/html
+RUN mkdir -p html & \
+    chown -R nobody:nogroup /var/www/vhosts/localhost/html & \
+    mkdir -p /configs
 
 # Expose ports
 EXPOSE 80 443 7080
+
+
+ENTRYPOINT cp /configs/.user.ini /usr/local/lsws/lsphp74/etc/php/7.4/mods-available/ & \
+    /entrypoint.sh
 
 # Start OpenLiteSpeed
 CMD ["/usr/local/lsws/bin/lswsctrl", "start"]
