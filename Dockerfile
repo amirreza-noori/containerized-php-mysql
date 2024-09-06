@@ -1,42 +1,50 @@
 
-# Use the official OpenLiteSpeed image
-FROM litespeedtech/openlitespeed:1.7.11-lsphp74
+FROM php:7.4-apache
 
-VOLUME [ "/usr/local/lsws/", "/var/www/vhosts/" ]
+RUN apt-get update && apt-get install --yes --force-yes wget unzip cron g++ gettext libicu-dev openssl libc-client-dev libkrb5-dev libxml2-dev libfreetype6-dev libgd-dev libmcrypt-dev bzip2 libbz2-dev libtidy-dev libcurl4-openssl-dev libz-dev libmemcached-dev libxslt-dev
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y wget unzip
+RUN a2enmod rewrite ssl
 
+RUN docker-php-ext-install mysqli 
+RUN docker-php-ext-enable mysqli
+
+RUN docker-php-ext-configure gd --with-freetype=/usr --with-jpeg=/usr
+RUN docker-php-ext-install gd
 
 # Download and install ionCube Loader
-RUN wget https://downloads4.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.zip
-RUN unzip ioncube_loaders_lin_x86-64.zip && \
-    mkdir -p /usr/local/lsws/lsphp74/etc/php/7.4/conf.d && \
-    cp ioncube/ioncube_loader_lin_7.4.so /usr/local/lsws/lsphp74/lib/php/ && \
-    echo "zend_extension = /usr/local/lsws/lsphp74/lib/php/ioncube_loader_lin_7.4.so" > /usr/local/lsws/lsphp74/etc/php/7.4/mods-available/ioncube.ini && \
-    ln -s /usr/local/lsws/lsphp74/etc/php/7.4/mods-available/ioncube.ini /usr/local/lsws/lsphp74/etc/php/7.4/conf.d/00-ioncube.ini && \
-    rm -rf ioncube_loaders_lin_x86-64.zip ioncube
+RUN wget https://downloads4.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.zip \
+    && unzip ioncube_loaders_lin_x86-64.zip \
+    && mv ioncube/ioncube_loader_lin_7.4.so $(php -r 'echo ini_get("extension_dir");') \
+    && echo "zend_extension=$(php -r 'echo ini_get("extension_dir");')/ioncube_loader_lin_7.4.so" > /usr/local/etc/php/conf.d/00-ioncube.ini \
+    && rm -rf ioncube ioncube_loaders_lin_x86-64.zip
 
+# Install Redis extension
+RUN pecl install redis \
+    && docker-php-ext-enable redis
 
 # Set the working directory
-WORKDIR /var/www/vhosts/localhost/
+WORKDIR /var/www/html/
 
-USER root
+# Create a self-signed SSL certificate
+RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com"
 
-# Set permissions for the web root directory
-RUN mkdir -p html & \
-    chown -R nobody:nogroup /var/www/vhosts/localhost/html & \
-    mkdir -p /configs
+# Configure Apache to use the SSL certificate
+RUN echo "<VirtualHost *:443>\n\
+    DocumentRoot /var/www/html\n\
+    SSLEngine on\n\
+    SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt\n\
+    SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key\n\
+    </VirtualHost>" > /etc/apache2/sites-available/default-ssl.conf
+
+RUN a2ensite default-ssl
 
 # Expose ports
-EXPOSE 80 443 7080
+EXPOSE 80 443
 
+RUN chown -R www-data:www-data /var/www/html
 
-ENTRYPOINT cp /configs/.user.ini /usr/local/lsws/lsphp74/etc/php/7.4/mods-available/ & \
-    cp -n /usr/local/lsws/conf/templates/docker.conf /configs/ & \
-    cp /configs/docker.conf /usr/local/lsws/conf/templates/ & \
-    /entrypoint.sh
-
-# Start OpenLiteSpeed
-CMD ["/usr/local/lsws/bin/lswsctrl", "start"]
+# Start Apache
+CMD mkdir -p /configs & \
+    cp -n /usr/local/etc/php/php.ini-production /configs/php.ini & \
+    cp /configs/php.ini /usr/local/etc/php/ & \
+    apache2-foreground

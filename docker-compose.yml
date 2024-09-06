@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  litespeed:
+  apache:
     build:
       context: .
     container_name: ${domain}
     volumes:
-      - /php-sites/${domain}/root:/var/www/vhosts/localhost/html
-      - /php-sites/${domain}/logs:/usr/local/lsws/logs
+      - /php-sites/${domain}/root:/var/www/html/
+      - /php-sites/${domain}/logs:/var/log/apache2/
       - /php-sites/${domain}/configs:/configs
     networks:
       - local
