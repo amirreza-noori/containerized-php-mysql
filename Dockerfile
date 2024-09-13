@@ -18,6 +18,10 @@ RUN wget https://downloads4.ioncube.com/loader_downloads/ioncube_loaders_lin_x86
     && echo "zend_extension=$(php -r 'echo ini_get("extension_dir");')/ioncube_loader_lin_7.4.so" > /usr/local/etc/php/conf.d/00-ioncube.ini \
     && rm -rf ioncube ioncube_loaders_lin_x86-64.zip
 
+# SoapClient
+RUN apt-get install -y libxml2-dev
+RUN docker-php-ext-install soap
+
 # Install Redis extension
 RUN pecl install redis \
     && docker-php-ext-enable redis
