@@ -36,6 +36,8 @@ EXPOSE 80 443 7080
 ENTRYPOINT cp /configs/.user.ini /usr/local/lsws/lsphp74/etc/php/7.4/mods-available/ & \
     cp -n /usr/local/lsws/conf/templates/docker.conf /configs/ & \
     cp /configs/docker.conf /usr/local/lsws/conf/templates/ & \
+    cp -n /usr/local/lsws/conf/httpd_config.xml /configs/ & \
+    cp /configs/httpd_config.xml /usr/local/lsws/conf/ & \
     /entrypoint.sh
 
 # Start OpenLiteSpeed
