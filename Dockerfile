@@ -1,6 +1,6 @@
 
 # Use the official OpenLiteSpeed image
-FROM litespeedtech/openlitespeed:1.7.11-lsphp74
+FROM litespeedtech/openlitespeed:1.8.1-lsphp74
 
 VOLUME [ "/usr/local/lsws/", "/var/www/vhosts/" ]
 
