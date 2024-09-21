@@ -6,9 +6,13 @@ services:
       context: .
     container_name: ${domain}
     volumes:
-      - /php-sites/${domain}/root:/var/www/html/
-      - /php-sites/${domain}/logs:/var/log/apache2/
-      - /php-sites/${domain}/configs:/configs
+      - /php-sites/${domain}/root:/app/
+      # - /php-sites/${domain}/logs:/var/log/apache2/
+      # - /php-sites/${domain}/configs:/configs
+    env_file:
+      - etc/environment.yml
+      # - etc/environment.development.yml
+      - etc/environment.production.yml
     networks:
       - local
       - www
