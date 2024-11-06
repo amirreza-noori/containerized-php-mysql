@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   apache:
     build:
@@ -7,8 +5,6 @@ services:
     container_name: ${domain}
     volumes:
       - /php-sites/${domain}/root:/app/
-      # - /php-sites/${domain}/logs:/var/log/apache2/
-      # - /php-sites/${domain}/configs:/configs
     env_file:
       - etc/environment.yml
       # - etc/environment.development.yml
@@ -27,6 +23,21 @@ services:
     networks:
       - local
       - database-monitor
+
+  backup-runner:
+    container_name: ${domain}-backup-runner
+    build:
+      context: .
+      dockerfile: ./Dockerfile-backup
+    volumes:
+      - /php-sites/${domain}:/source:ro
+      - /php-sites/${domain}/backup:/backup
+    env_file:
+      - /php-sites/${domain}/.env
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
 networks:
   local:
