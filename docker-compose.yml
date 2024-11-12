@@ -9,6 +9,11 @@ services:
       - etc/environment.yml
       # - etc/environment.development.yml
       - etc/environment.production.yml
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
     networks:
       - local
       - www
@@ -37,7 +42,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 512MB
+          cpus: '0.5'
 
 networks:
   local:
