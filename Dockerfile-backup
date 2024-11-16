@@ -1,11 +1,10 @@
 FROM alpine:latest
 
-RUN apk add --no-cache zip bash curl
+RUN apk add --no-cache zip bash curl mariadb mariadb-client
 
 COPY backup.sh /usr/local/bin/backup.sh
-
 RUN chmod +x /usr/local/bin/backup.sh
 
-RUN echo "*/10 * * * * /usr/local/bin/backup.sh" >> /etc/crontabs/root
+RUN echo "*/30 * * * * /usr/local/bin/backup.sh" >> /etc/crontabs/root
 
 CMD ["crond", "-f"]
