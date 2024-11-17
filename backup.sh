@@ -7,6 +7,7 @@ BACKUP_FTP_PASS="${BACKUP_FTP_PASS}"
 BACKUP_IGNORE_PATH="${BACKUP_IGNORE_PATH}"
 MYSQL_DATABASE="${MYSQL_DATABASE}"
 MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+BACKUP_FULL_HOUR="${BACKUP_FULL_HOUR}"
 
 # source and destination for backup file
 SOURCE_DIR="/source"
@@ -35,6 +36,8 @@ mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE >$DB_BACKUP_FILE
 mysqladmin -u root -p"$MYSQL_ROOT_PASSWORD" shutdown
 # zip the SQL file
 zip -j $DB_BACKUP_FILE.zip $DB_BACKUP_FILE
+# remove additional SQL file
+rm $DB_BACKUP_FILE
 
 # upload db file
 if [ -n "$BACKUP_FTP_SERVER" ]; then
@@ -44,7 +47,7 @@ fi
 CURRENT_HOUR=$(date +%H)
 CURRENT_MINUTE=$(date +%M)
 IGNORE_OPTIONS=""
-if [ "$CURRENT_HOUR" -eq 00 ] && [ "$CURRENT_MINUTE" -lt 10 ]; then
+if [ "$CURRENT_HOUR" -eq $BACKUP_FULL_HOUR ] && [ "$CURRENT_MINUTE" -lt 10 ]; then
     # create zip ignore list form env
     if [ -n "$BACKUP_IGNORE_PATH" ]; then
         for path in $BACKUP_IGNORE_PATH; do
@@ -94,7 +97,7 @@ should_keep_zip_file() {
 should_keep_sql_file() {
     local file=$1
     local filename=$(basename "$file")
-    local datetime=$(echo "$filename" | sed -e 's/db_backup_//' -e 's/.sql//')
+    local datetime=$(echo "$filename" | sed -e 's/db_backup_//' -e 's/.sql.zip//')
     # change filename to valid format for date function
     local formatted_datetime=$(echo "$datetime" | sed 's/\(....\)\(..\)\(..\)_\(..\)\(..\)/\1-\2-\3 \4:\5/')
     local file_time=$(date -d "$formatted_datetime" +%s)
@@ -135,7 +138,7 @@ for file in "$BACKUP_DIR"/backup_*.zip; do
 done
 
 # checking sql file and remove them base on condition
-for file in "$BACKUP_DIR"/db_backup_*.sql; do
+for file in "$BACKUP_DIR"/db_backup_*.sql.zip; do
     if ! should_keep_sql_file "$file"; then
         rm -f "$file"
         # remove file from ftp server
