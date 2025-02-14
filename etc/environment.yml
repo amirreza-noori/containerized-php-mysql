@@ -29,19 +29,20 @@ CLI_SCRIPT=php /app/index.php
 
 # FPM global (master)
 
+
 fpm.global.process_control_timeout=5m
 fpm.global.process.max=1000
 
 # FPM pool
 
-# fpm.pool.pm=dynamic
-# fpm.pool.pm.max_children=200
-# fpm.pool.pm.start_servers=10
-# fpm.pool.pm.min_spare_servers=60
-# fpm.pool.pm.max_spare_servers=500
-# fpm.pool.pm.process_idle_timeout=10s
-# fpm.pool.pm.max_requests=1000
-# fpm.pool.request_terminate_timeout=5m
+fpm.pool.pm=dynamic
+fpm.pool.pm.max_children=400
+fpm.pool.pm.start_servers=300
+fpm.pool.pm.min_spare_servers=200
+fpm.pool.pm.max_spare_servers=400
+fpm.pool.pm.process_idle_timeout=10s
+fpm.pool.pm.max_requests=200
+fpm.pool.request_terminate_timeout=5m
 
 
 #######################################

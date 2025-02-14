@@ -18,8 +18,12 @@ mkdir -p $BACKUP_DIR
 
 # filename and location generation
 TIMESTAMP=$(date +"%Y%m%d_%H%M")
-LOCAL_FILE=backup_$TIMESTAMP.zip
+FULL_BACKUP_FILE=$BACKUP_DIR/backup_$TIMESTAMP.zip
 DB_BACKUP_FILE=$BACKUP_DIR/db_backup_$TIMESTAMP.sql
+
+#################################################################################################
+### DB Backup ###################################################################################
+#################################################################################################
 
 # copy files from /mariadb to mysql data directory
 mkdir -p /var/lib/mysql/
@@ -43,55 +47,6 @@ rm $DB_BACKUP_FILE
 if [ -n "$BACKUP_FTP_SERVER" ]; then
     curl -s -T "$DB_BACKUP_FILE.zip" --user "$BACKUP_FTP_USER:$BACKUP_FTP_PASS" "ftp://$BACKUP_FTP_SERVER/" -o /dev/null -w "UPLOAD %{http_code}\n"
 fi
-
-CURRENT_HOUR=$(date +%H)
-CURRENT_MINUTE=$(date +%M)
-IGNORE_OPTIONS=""
-if [ "$CURRENT_HOUR" -eq $BACKUP_FULL_HOUR ] && [ "$CURRENT_MINUTE" -lt 10 ]; then
-    # create zip ignore list form env
-    if [ -n "$BACKUP_IGNORE_PATH" ]; then
-        for path in $BACKUP_IGNORE_PATH; do
-            IGNORE_OPTIONS="$IGNORE_OPTIONS \"$path\""
-        done
-    fi
-    # create zip (without compress: 0) from file and folders (recursive; r) and ignore some files in silence (q)
-    cd $SOURCE_DIR
-    eval "zip -qr0 $LOCAL_FILE . -x \"backup/*\" \".env*\" $IGNORE_OPTIONS"
-
-    # upload zip file to a ftp server only at 18:00
-    if [ -n "$BACKUP_FTP_SERVER" ]; then
-        curl -s -T "$LOCAL_FILE" --user "$BACKUP_FTP_USER:$BACKUP_FTP_PASS" "ftp://$BACKUP_FTP_SERVER/" -o /dev/null -w "UPLOAD %{http_code}\n"
-    fi
-fi
-
-# a function to determine a backup file should keep
-should_keep_zip_file() {
-    local file=$1
-    local filename=$(basename "$file")
-    local datetime=$(echo "$filename" | sed -e 's/backup_//' -e 's/.zip//')
-    # change filename to valid format for date function
-    local formatted_datetime=$(echo "$datetime" | sed 's/\(....\)\(..\)\(..\)_\(..\)\(..\)/\1-\2-\3 \4:\5/')
-    local file_time=$(date -d "$formatted_datetime" +%s)
-    local current_time=$(date +%s)
-    local age=$(((current_time - file_time) / 60)) # سن فایل به دقیقه
-
-    # file keep conditions
-    if [ $age -lt 10080 ] && [[ "$datetime" =~ [0-9]{8}_ ]]; then
-        return 0 # files created in last 7 days
-    elif [ $age -lt 43200 ] && [[ "$datetime" =~ [0-9]{6}01_ ]]; then
-        return 0 # files created in last month that day matched with 01
-    elif [ $age -lt 43200 ] && [[ "$datetime" =~ [0-9]{6}08_ ]]; then
-        return 0 # files created in last month that day matched with 08
-    elif [ $age -lt 43200 ] && [[ "$datetime" =~ [0-9]{6}15_ ]]; then
-        return 0 # files created in last month that day matched with 15
-    elif [ $age -lt 43200 ] && [[ "$datetime" =~ [0-9]{6}22_ ]]; then
-        return 0 # files created in last month that day matched with 22
-    elif [ $age -lt 157680 ] && [[ "$datetime" =~ [0-9]{6}01_ ]]; then
-        return 0 # files created in last 6 months that day matched with 01
-    else
-        return 1 # file should remove
-    fi
-}
 
 # a function to determine a backup file should keep
 should_keep_sql_file() {
@@ -126,17 +81,6 @@ should_keep_sql_file() {
     fi
 }
 
-# checking zip file and remove them base on condition
-for file in "$BACKUP_DIR"/backup_*.zip; do
-    if ! should_keep_zip_file "$file"; then
-        rm -f "$file"
-        # remove file from ftp server
-        if [ -n "$BACKUP_FTP_SERVER" ]; then
-            curl -s -u "$BACKUP_FTP_USER:$BACKUP_FTP_PASS" "ftp://$BACKUP_FTP_SERVER" -Q "-DELE $(basename $file)" -o /dev/null -w "DELETE $file %{http_code}\n"
-        fi
-    fi
-done
-
 # checking sql file and remove them base on condition
 for file in "$BACKUP_DIR"/db_backup_*.sql.zip; do
     if ! should_keep_sql_file "$file"; then
@@ -147,5 +91,64 @@ for file in "$BACKUP_DIR"/db_backup_*.sql.zip; do
         fi
     fi
 done
+
+#################################################################################################
+### Daily Full Backup ###########################################################################
+#################################################################################################
+
+# a function to determine a backup file should keep
+should_keep_zip_file() {
+    local file=$1
+    local filename=$(basename "$file")
+    local datetime=$(echo "$filename" | sed -e 's/backup_//' -e 's/.zip//')
+    # change filename to valid format for date function
+    local formatted_datetime=$(echo "$datetime" | sed 's/\(....\)\(..\)\(..\)_\(..\)\(..\)/\1-\2-\3 \4:\5/')
+    local file_time=$(date -d "$formatted_datetime" +%s)
+    local current_time=$(date +%s)
+    local age=$(((current_time - file_time) / 86400)) # سن فایل به روز
+
+    # file keep conditions
+    if [ $age -lt 7 ]; then
+        return 0 # files created in last 7 days
+    elif [ $age -lt 30 ] && [[ "$datetime" =~ [0-9]{6}(01|08|15|22)_ ]]; then
+        return 0 # files created in last month that day matched with 01, 08, 15, or 22
+    elif [ $age -lt 180 ] && [[ "$datetime" =~ [0-9]{6}01_ ]]; then
+        return 0 # files created in last 6 months that day matched with 01
+    else
+        return 1 # file should remove
+    fi
+}
+
+CURRENT_HOUR=$(date +%H)
+CURRENT_MINUTE=$(date +%M)
+IGNORE_OPTIONS=""
+if [ "$CURRENT_HOUR" -eq $BACKUP_FULL_HOUR ] && [ "$CURRENT_MINUTE" -lt 10 ]; then
+    # create zip ignore list form env
+    if [ -n "$BACKUP_IGNORE_PATH" ]; then
+        for path in $BACKUP_IGNORE_PATH; do
+            IGNORE_OPTIONS="$IGNORE_OPTIONS \"$path\""
+        done
+    fi
+    # create zip (without compress: 0) from file and folders (recursive; r) and ignore some files in silence (q)
+    cd $SOURCE_DIR
+    eval "zip -qr0 $FULL_BACKUP_FILE . -x \"backup/*\" \".env*\" $IGNORE_OPTIONS"
+
+    upload zip file to a ftp server only at 18:00
+    if [ -n "$BACKUP_FTP_SERVER" ]; then
+        curl -s -T "$FULL_BACKUP_FILE" --user "$BACKUP_FTP_USER:$BACKUP_FTP_PASS" "ftp://$BACKUP_FTP_SERVER/" -o /dev/null -w "UPLOAD %{http_code}\n"
+    fi
+
+    # checking zip file and remove them base on condition
+    for file in "$BACKUP_DIR"/backup_*.zip; do
+        if ! should_keep_zip_file "$file"; then
+            rm -f "$file"
+            # remove file from ftp server
+            if [ -n "$BACKUP_FTP_SERVER" ]; then
+                curl -s -u "$BACKUP_FTP_USER:$BACKUP_FTP_PASS" "ftp://$BACKUP_FTP_SERVER" -Q "-DELE $(basename $file)" -o /dev/null -w "DELETE $file %{http_code}\n"
+            fi
+        fi
+    done
+
+fi
 
 sync
