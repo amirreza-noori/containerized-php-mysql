@@ -25,6 +25,7 @@ services:
       - /php-sites/${domain}/.env
     volumes:
       - /php-sites/${domain}/mariadb:/var/lib/mysql
+    restart: always
     networks:
       - local
       - database-monitor

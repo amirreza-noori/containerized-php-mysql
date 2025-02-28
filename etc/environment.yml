@@ -36,14 +36,13 @@ fpm.global.process.max=1000
 # FPM pool
 
 fpm.pool.pm=dynamic
-fpm.pool.pm.max_children=400
-fpm.pool.pm.start_servers=300
-fpm.pool.pm.min_spare_servers=200
-fpm.pool.pm.max_spare_servers=400
+fpm.pool.pm.max_children=110
+fpm.pool.pm.start_servers=90
+fpm.pool.pm.min_spare_servers=90
+fpm.pool.pm.max_spare_servers=110
 fpm.pool.pm.process_idle_timeout=10s
-fpm.pool.pm.max_requests=200
+fpm.pool.pm.max_requests=400
 fpm.pool.request_terminate_timeout=5m
-
 
 #######################################
 # SSH settings
