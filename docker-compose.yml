@@ -2,9 +2,10 @@ services:
   apache:
     build:
       context: .
-    container_name: ${domain}
+    container_name: ${folder}
+    hostname: ${domain}
     volumes:
-      - /php-sites/${domain}/root:/app/
+      - /php-sites/${folder}/root:/app/
     env_file:
       - etc/environment.yml
       # - etc/environment.development.yml
@@ -20,26 +21,26 @@ services:
 
   mariadb:
     image: mariadb:latest
-    container_name: ${domain}-db
+    container_name: ${folder}-db
     env_file:
-      - /php-sites/${domain}/.env
+      - /php-sites/${folder}/.env
     volumes:
-      - /php-sites/${domain}/mariadb:/var/lib/mysql
+      - /php-sites/${folder}/mariadb:/var/lib/mysql
     restart: always
     networks:
       - local
       - database-monitor
 
   backup-runner:
-    container_name: ${domain}-backup-runner
+    container_name: ${folder}-backup-runner
     build:
       context: .
       dockerfile: ./Dockerfile-backup
     volumes:
-      - /php-sites/${domain}:/source:ro
-      - /php-sites/${domain}/backup:/backup
+      - /php-sites/${folder}:/source:ro
+      - /php-sites/${folder}/backup:/backup
     env_file:
-      - /php-sites/${domain}/.env
+      - /php-sites/${folder}/.env
     deploy:
       resources:
         limits:
@@ -48,10 +49,12 @@ services:
 
 networks:
   local:
-    name: ${domain}
+    name: ${folder}
   www:
     name: www
     external: true
   database-monitor:
     name: database-monitor
     external: true
+
+#command: domain=domain.com folder=domain-com docker compose -f ./docker-compose.yml up -d --build
