@@ -12,5 +12,7 @@ RUN ln -sf /opt/docker/etc/cron/crontab /etc/cron.d/docker-boilerplate \
     && echo >> /opt/docker/etc/cron/crontab \
     && ln -sf /opt/docker/etc/php/production.ini /opt/docker/etc/php/php.ini
 
+RUN pecl install timezonedb
+
 # Configure volume/workdir
 WORKDIR /app/
