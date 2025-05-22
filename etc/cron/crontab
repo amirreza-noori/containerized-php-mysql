@@ -1,3 +1,3 @@
 # m h  dom mon dow  user  command
 
-# * * * * * application wget -q -O - https://your-domain.ir/wp-cron.php?doing_wp_cron > /dev/null 2>&1
+* * * * * application wget -q -O - http://localhost/wp-cron.php?doing_wp_cron >/dev/null 2>&1
