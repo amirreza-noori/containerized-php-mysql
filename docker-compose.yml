@@ -10,11 +10,44 @@ services:
       - etc/environment.yml
       # - etc/environment.development.yml
       - etc/environment.production.yml
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1'
+    extra_hosts:
+      - 'wordpress.org:0.0.0.0'
+      - 'api.wordpress.org:0.0.0.0'
+      - 'fa.wordpress.org:0.0.0.0'
+      - 'learn.wordpress.org:0.0.0.0'
+      - 'apps.wordpress.org:0.0.0.0'
+      - 'core.trac.wordpress.org:0.0.0.0'
+      - 'plugin.trac.wordpress.org:0.0.0.0'
+      - 'developer.woocommerce.com:0.0.0.0'
+      - 'bridge.unitedover.com:0.0.0.0'
+      - 'api.bitbucket.org:0.0.0.0'
+      - 'woocommerce.ir:0.0.0.0'
+      - 'woonotice.ir:0.0.0.0'
+      - 'woohash.ir:0.0.0.0'
+      - 'woocommerce.com:0.0.0.0'
+      - 'tracking.woocommerce.com:0.0.0.0'
+      - 'wordpressnull.org:0.0.0.0'
+      - 'plugins.svn.wordpress.org:0.0.0.0'
+      - 'graph.facebook.com:0.0.0.0'
+      - 'facebook.comm:0.0.0.0'
+      - 'rankmath.com:0.0.0.0'
+      - 'support.rankmath.com:0.0.0.0'
+      - 'elementor.com:0.0.0.0'
+      - 'go.elementor.com:0.0.0.0'
+      - 'my.elementor.com:0.0.0.0'
+      - 'ms-8874.elementor.com:0.0.0.0'
+      - 'planner.elementor.com:0.0.0.0'
+      - 'developers.elementor.com:0.0.0.0'
+      - 'elementor.atlassian.net:0.0.0.0'
+      - 'developers.google.com:0.0.0.0'
+      - 'standalonetech.com:0.0.0.0'
+      - 'php.net:0.0.0.0'
+      - 'wp-crontrol.com:0.0.0.0'
+      - 'wpastra.com:0.0.0.0'
+      - 'rankmath.com:0.0.0.0'
+      - 'github.com:0.0.0.0'
+      - 'm.me:0.0.0.0'
+      - 'purl.org:0.0.0.0'
     networks:
       - local
       - www
@@ -27,6 +60,7 @@ services:
     volumes:
       - /php-sites/${folder}/mariadb:/var/lib/mysql
     restart: always
+    command: --max_connections=200 --innodb_buffer_pool_size=3G --innodb_log_file_size=128M --query_cache_type=0 --tmp_table_size=32M --max_heap_table_size=32M --innodb_flush_log_at_trx_commit=2 --table_open_cache=1500 --thread_cache_size=50
     networks:
       - local
       - database-monitor
@@ -56,5 +90,4 @@ networks:
   database-monitor:
     name: database-monitor
     external: true
-
 #command: domain=domain.com folder=domain-com docker compose -f ./docker-compose.yml up -d --build
