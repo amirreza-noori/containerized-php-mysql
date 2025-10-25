@@ -26,18 +26,58 @@ DB_BACKUP_FILE=$BACKUP_DIR/db_backup_$TIMESTAMP.sql
 #################################################################################################
 
 # copy files from /mariadb to mysql data directory
-mkdir -p /var/lib/mysql/
+mkdir -p /var/lib/mysql/ /var/run/mysqld/
 cp -r $SOURCE_DIR/mariadb/* /var/lib/mysql/
 chmod -R 755 /var/lib/mysql
-chown -R mysql:mysql /var/lib/mysql
+chown -R mysql:mysql /var/lib/mysql /var/run/mysqld/
 sleep 2
-# start mariadb server
-mysqld_safe --datadir='/var/lib/mysql' &
-sleep 20
-# create database backup
-mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE >$DB_BACKUP_FILE
-# stop mariadb server
-mysqladmin -u root -p"$MYSQL_ROOT_PASSWORD" shutdown
+
+# Start MariaDB in backup container with improved recovery
+echo "Starting MariaDB server for backup..."
+
+# Clean up any problematic files before starting
+rm -f /var/lib/mysql/tc.log
+rm -f /var/lib/mysql/*.err
+
+# Start MariaDB with minimal configuration to avoid recovery issues
+mariadbd --datadir='/var/lib/mysql' --user=mysql --socket=/var/run/mysqld/mysqld.sock --pid-file=/var/run/mysqld/mysqld.pid --skip-grant-tables --skip-networking --skip-log-bin --innodb-force-recovery=1 &
+MYSQL_PID=$!
+
+# Wait for MariaDB to be ready
+for i in {1..30}; do
+    if [ -S /var/run/mysqld/mysqld.sock ]; then
+        echo "MariaDB socket is ready"
+        break
+    fi
+    
+    # Check if process is still running
+    if ! kill -0 $MYSQL_PID 2>/dev/null; then
+        echo "ERROR: MariaDB process died"
+        echo "Checking error log:"
+        if [ -f /var/lib/mysql/*.err ]; then
+            tail -20 /var/lib/mysql/*.err
+        fi
+        exit 1
+    fi
+    
+    if [ $i -eq 30 ]; then
+        echo "ERROR: MariaDB socket not ready after 60 seconds"
+        echo "Checking error log:"
+        if [ -f /var/lib/mysql/*.err ]; then
+            tail -20 /var/lib/mysql/*.err
+        fi
+        kill $MYSQL_PID 2>/dev/null
+        exit 1
+    fi
+    sleep 2
+done
+
+# Create database backup
+echo "Creating database backup..."
+mariadb-dump --socket=/var/run/mysqld/mysqld.sock $MYSQL_DATABASE >$DB_BACKUP_FILE
+
+# Stop MariaDB
+mysqladmin --socket=/var/run/mysqld/mysqld.sock shutdown || kill $MYSQL_PID 2>/dev/null || pkill mariadbd
 # zip the SQL file
 zip -j $DB_BACKUP_FILE.zip $DB_BACKUP_FILE
 # remove additional SQL file
